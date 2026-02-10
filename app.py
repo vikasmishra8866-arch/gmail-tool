@@ -43,8 +43,8 @@ def find_secrets(text):
     return found
 
 # Sidebar Navigation
-st.sidebar.title("👻 Ghost Dashboard")
-choice = st.sidebar.radio("Select Module", ["Email Hunter", "Pro Secret Scanner", "IP & Phone Tracker", "Website Recon"])
+# --- "Social Finder" Choice Add Kar Di Gayi Hai ---
+choice = st.sidebar.radio("Select Module", ["Email Hunter", "Pro Secret Scanner", "IP & Phone Tracker", "Website Recon", "Social Finder"])
 
 # --- MODULE 1: EMAIL HUNTER (h8mail) ---
 if choice == "Email Hunter":
@@ -54,7 +54,6 @@ if choice == "Email Hunter":
         with st.spinner('Checking database...'):
             cmd = ["h8mail", "-t", email, "--local"]
             res = subprocess.run(cmd, capture_output=True, text=True)
-            # ANSI Cleaning included
             clean_res = re.sub(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])|\[\d+m', '', res.stdout)
             st.code(clean_res)
 
@@ -70,7 +69,7 @@ elif choice == "Pro Secret Scanner":
             js_files = [urljoin(target_url, tag.get('src')) for tag in soup.find_all('script', src=True)]
             
             st.info(f"Scanning {len(js_files)} JS files...")
-            for js in js_files[:10]: # Deep scan top 10 files
+            for js in js_files[:10]:
                 try:
                     js_res = requests.get(js, headers=get_stealth_headers(), timeout=5)
                     secrets.extend(find_secrets(js_res.text))
@@ -81,25 +80,20 @@ elif choice == "Pro Secret Scanner":
             else: st.success("No secrets found.")
         except Exception as e: st.error(e)
 
-# --- MODULE 3: IP & PHONE TRACKER (NEW!) ---
+# --- MODULE 3: IP & PHONE TRACKER ---
 elif choice == "IP & Phone Tracker":
     st.title("📍 IP & Phone OSINT")
-    
     col1, col2 = st.columns(2)
-    
     with col1:
         st.subheader("IP Tracker")
         ip_addr = st.text_input("Enter IP Address (e.g. 8.8.8.8):")
         if st.button("Track IP"):
             track_res = requests.get(f"http://ip-api.com/json/{ip_addr}")
             st.json(track_res.json())
-            
     with col2:
         st.subheader("Phone Tracker (Basic)")
         phone_num = st.text_input("Enter Phone with Country Code (e.g. +91...):")
         if st.button("Trace Number"):
-            # Basic OSINT for Phone (Carrier/Location info via public API)
-            # Note: Real-time GPS tracking requires premium API, this provides metadata.
             phone_res = requests.get(f"https://ipqualityscore.com/api/json/phone/free_check?phone={phone_num}")
             st.write("Fetching carrier and country info...")
             st.json({"Number": phone_num, "Status": "Metadata fetched", "Note": "Use NumVerify API for more deep info"})
@@ -115,6 +109,34 @@ elif choice == "Website Recon":
             st.success("SS Pinning Active: Secure Connection ✅")
             st.json(dict(res.headers))
         except Exception as e: st.error(e)
+
+# --- MODULE 5: SOCIAL FINDER (NEW!) ---
+elif choice == "Social Finder":
+    st.title("📱 Social Media Username Checker")
+    st.write("Check karein ki ye username kaha-kaha active hai.")
+    username = st.text_input("Enter Username (e.g. vikas_mishra):")
+    
+    if st.button("Start Social Search"):
+        if username:
+            sites = {
+                "Instagram": f"https://www.instagram.com/{username}",
+                "Twitter": f"https://www.twitter.com/{username}",
+                "GitHub": f"https://www.github.com/{username}",
+                "YouTube": f"https://www.youtube.com/@{username}",
+                "Pinterest": f"https://www.pinterest.com/{username}"
+            }
+            for name, url in sites.items():
+                try:
+                    # Stealth headers ka use karke scan
+                    r = requests.get(url, headers=get_stealth_headers(), timeout=5)
+                    if r.status_code == 200:
+                        st.success(f"✅ Found on {name}: {url}")
+                    else:
+                        st.error(f"❌ Not Found on {name}")
+                except:
+                    st.warning(f"⚠️ Could not check {name}")
+        else:
+            st.warning("Username toh daalo!")
 
 st.sidebar.markdown("---")
 st.sidebar.caption("Privacy: Stealth Mode Enabled ✅")
