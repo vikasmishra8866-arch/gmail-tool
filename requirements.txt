@@ -2,3 +2,4 @@ streamlit
 h8mail
 requests
 aiohttp
+beautifulsoup4
