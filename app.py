@@ -1,51 +1,65 @@
 import streamlit as st
 import subprocess
 import re
+import requests
 
-# Website ka Title
-st.set_page_config(page_title="Bhai ka OSINT API", page_icon="🔍")
-st.title("🔍 Email Leak Checker (h8mail)")
-st.write("Apna email daalein aur dekhein ki kya aapka data leak hua hai.")
+# Page Settings
+st.set_page_config(page_title="Bhai ka Hacker Dashboard", page_icon="🛡️", layout="wide")
 
-# URL se data nikalne ke liye API logic
-query_params = st.query_params
-url_email = query_params.get("email")
-
-# User Input Box
-email_input = st.text_input("Enter Email Address:", value=url_email if url_email else "")
-
-# ANSI Codes hatane ke liye function (Cleaning Logic)
+# ANSI Cleaning Function
 def clean_ansi_codes(text):
     ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])|\[\d+m')
     return ansi_escape.sub('', text)
 
-if st.button("Check Leak") or url_email:
-    if email_input:
-        with st.spinner('Checking databases... Thoda sabar rakhein...'):
-            try:
-                # h8mail command run karna
+# Sidebar for Navigation
+st.sidebar.title("Select Tool")
+choice = st.sidebar.radio("Kaunsa tool chalana hai?", ["Email Leak Checker", "Website Recon"])
+
+# --- TOOL 1: EMAIL LEAK CHECKER (h8mail) ---
+if choice == "Email Leak Checker":
+    st.title("🔍 Email Leak Checker (h8mail)")
+    email_input = st.text_input("Enter Email:")
+    
+    if st.button("Check Leak"):
+        if email_input:
+            with st.spinner('Checking...'):
                 cmd = ["h8mail", "-t", email_input, "--local"]
                 result = subprocess.run(cmd, capture_output=True, text=True)
+                clean_res = clean_ansi_codes(result.stdout)
+                st.code(clean_res, language="text")
+        else:
+            st.warning("Email toh daalo bhai!")
 
-                # Output ko saaf karna
-                raw_output = result.stdout
-                clean_output = clean_ansi_codes(raw_output)
+# --- TOOL 2: WEBSITE RECON (Final Recon Style) ---
+elif choice == "Website Recon":
+    st.title("🌐 Website Recon (IP & Headers)")
+    domain = st.text_input("Enter Website URL (e.g., google.com):")
+    
+    if st.button("Get Kundli"):
+        if domain:
+            with st.spinner('Fetching Data...'):
+                try:
+                    # Header Info nikalna
+                    target = f"https://{domain}" if not domain.startswith('http') else domain
+                    res = requests.get(target, timeout=10)
+                    
+                    st.subheader("Results for: " + domain)
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.info("💡 Server Headers")
+                        st.json(dict(res.headers))
+                    
+                    with col2:
+                        st.success("🔒 Security Info")
+                        st.write(f"Status Code: {res.status_code}")
+                        st.write(f"Encoding: {res.encoding}")
+                        st.write(f"Is Redirect: {res.is_redirect}")
 
-                st.subheader("Results:")
-                if clean_output.strip():
-                    # Saaf sutra output dikhana
-                    st.code(clean_output, language="text")
-                else:
-                    st.info("Koi leak nahi mila ya tool ne respond nahi kiya.")
-                
-                # API Jaisa Response (JSON)
-                with st.expander("Show JSON (API Mode)"):
-                    st.json({"email": email_input, "data": clean_output})
+                except Exception as e:
+                    st.error(f"Error: {e}. Check if domain is valid.")
+        else:
+            st.warning("Domain name likho!")
 
-            except Exception as e:
-                st.error(f"Error aagaya bhai: {e}")
-    else:
-        st.warning("Pehle email address toh likho!")
-
-st.markdown("---")
-st.caption("Powered by h8mail | Clean Version")
+st.sidebar.markdown("---")
+st.sidebar.info("Tip: Website Recon se aap kisi bhi site ka server type aur security headers check kar sakte hain.")
